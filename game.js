@@ -1,11 +1,8 @@
 const config = {
-
     type: Phaser.AUTO,
-
-    width: 960,
-    height: 540,
-
-    pixelArt: true,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: "#1d2b53",
 
     physics: {
         default: "arcade",
@@ -26,156 +23,76 @@ const game = new Phaser.Game(config);
 let player;
 let cursors;
 let slimes;
+let spaceKey;
 
-function preload(){
-
-    this.load.image(
-        "grass",
-        "assets/grass.png"
-    );
-
-    this.load.image(
-        "tree",
-        "assets/tree.png"
-    );
-
-    this.load.image(
-        "player",
-        "assets/player.png"
-    );
-
-    this.load.image(
-        "slime",
-        "assets/slime.png"
-    );
-
-    this.load.image(
-        "mage",
-        "assets/mage.png"
-    );
-
-    this.load.image(
-        "portal",
-        "assets/portal.png"
-    );
+function preload() {
+    this.load.image("player", "https://labs.phaser.io/assets/sprites/phaser-dude.png");
+    this.load.image("slime", "https://labs.phaser.io/assets/sprites/slug.png");
+    this.load.image("tile", "https://labs.phaser.io/assets/textures/grass.png");
 }
 
-function create(){
+function create() {
 
-    for(let y=0;y<12;y++){
-
-        for(let x=0;x<20;x++){
-
-            this.add.image(
-                x*48+24,
-                y*48+24,
-                "grass"
-            );
+    // chão simples
+    for (let y = 0; y < 15; y++) {
+        for (let x = 0; x < 25; x++) {
+            this.add.image(x * 32, y * 32, "tile").setOrigin(0);
         }
     }
 
-    player =
-        this.physics.add.sprite(
-            100,
-            100,
-            "player"
-        );
+    // player
+    player = this.physics.add.sprite(100, 100, "player");
+    player.setScale(2);
 
-    player.setCollideWorldBounds(
-        true
-    );
+    // slimes
+    slimes = this.physics.add.group();
 
-    this.add.image(
-        300,
-        150,
-        "mage"
-    );
+    slimes.create(300, 200, "slime").setScale(1.5);
+    slimes.create(500, 300, "slime").setScale(1.5);
+    slimes.create(700, 150, "slime").setScale(1.5);
 
-    slimes =
-        this.physics.add.group();
-
-    slimes.create(
-        500,
-        200,
-        "slime"
-    );
-
-    slimes.create(
-        650,
-        300,
-        "slime"
-    );
-
-    slimes.create(
-        750,
-        180,
-        "slime"
-    );
-
-    cursors =
-        this.input.keyboard.createCursorKeys();
-
-    this.input.keyboard.on(
-        "keydown-SPACE",
-        () => {
-
-            slimes.children.iterate(
-                slime => {
-
-                    if(!slime.active)
-                        return;
-
-                    const dist =
-                        Phaser.Math.Distance.Between(
-                            player.x,
-                            player.y,
-                            slime.x,
-                            slime.y
-                        );
-
-                    if(dist < 70){
-
-                        slime.destroy();
-                    }
-                }
-            );
-        }
-    );
+    // controles
+    cursors = this.input.keyboard.createCursorKeys();
+    spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 }
 
-function update(){
+function update() {
 
-    player.setVelocity(
-        0
-    );
+    const speed = 200;
 
-    const speed = 180;
+    player.setVelocity(0);
 
-    if(cursors.left.isDown){
-
-        player.setVelocityX(
-            -speed
-        );
+    if (cursors.left.isDown) {
+        player.setVelocityX(-speed);
     }
 
-    if(cursors.right.isDown){
-
-        player.setVelocityX(
-            speed
-        );
+    if (cursors.right.isDown) {
+        player.setVelocityX(speed);
     }
 
-    if(cursors.up.isDown){
-
-        player.setVelocityY(
-            -speed
-        );
+    if (cursors.up.isDown) {
+        player.setVelocityY(-speed);
     }
 
-    if(cursors.down.isDown){
+    if (cursors.down.isDown) {
+        player.setVelocityY(speed);
+    }
 
-        player.setVelocityY(
-            speed
-        );
+    // ataque (SPACE)
+    if (Phaser.Input.Keyboard.JustDown(spaceKey)) {
+
+        slimes.children.iterate(slime => {
+
+            if (!slime) return;
+
+            const dist = Phaser.Math.Distance.Between(
+                player.x, player.y,
+                slime.x, slime.y
+            );
+
+            if (dist < 80) {
+                slime.destroy();
+            }
+        });
     }
 }
