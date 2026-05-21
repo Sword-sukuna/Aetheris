@@ -1,248 +1,72 @@
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-const TILE = 48;
-
-const MAP = [
-"####################",
-"#..................#",
-"#..................#",
-"#..................#",
-"#..................#",
-"#..................#",
-"#..................#",
-"####################"
-];
+// ==========================
+// PLAYER
+// ==========================
 
 const player = {
     x: 2,
     y: 2,
+
+    hp: 100,
+    maxHp: 100,
+
+    attack: 10,
+
+    xp: 0,
+    level: 1,
+
+    gold: 0,
+
     color: "#4da6ff"
 };
 
-const npcs = [
-{
-    x:5,
-    y:3,
-    name:"Velho Mago",
-    dialog:[
-        "Bem-vindo a Aetheris jovem aventureiro!"
-    ]
-}
-];
+function gainXP(amount){
 
-const keys = {};
+    player.xp += amount;
 
-let dialogOpen = false;
-let dialogText = "";
+    const needed =
+        player.level * 30;
 
-document.addEventListener("keydown", e => {
+    if(player.xp >= needed){
 
-    const key = e.key.toLowerCase();
+        player.xp -= needed;
 
-    keys[key] = true;
+        player.level++;
 
-    if(key === "e"){
+        player.maxHp += 20;
 
-        for(const npc of npcs){
+        player.hp = player.maxHp;
 
-            const dx =
-                Math.abs(player.x - npc.x);
+        player.attack += 2;
 
-            const dy =
-                Math.abs(player.y - npc.y);
-
-            if(dx <= 1 && dy <= 1){
-
-                dialogOpen = true;
-
-                dialogText =
-                    npc.name +
-                    ": " +
-                    npc.dialog[0];
-            }
-        }
-    }
-
-    if(key === "escape"){
-
-        dialogOpen = false;
-    }
-});
-
-document.addEventListener("keyup", e => {
-
-    keys[e.key.toLowerCase()] = false;
-});
-
-function isWall(x,y){
-
-    if(
-        y < 0 ||
-        y >= MAP.length ||
-        x < 0 ||
-        x >= MAP[0].length
-    ){
-        return true;
-    }
-
-    return MAP[y][x] === "#";
-}
-
-function update(){
-
-    if(dialogOpen) return;
-
-    let nx = player.x;
-    let ny = player.y;
-
-    if(keys["w"]) ny--;
-
-    if(keys["s"]) ny++;
-
-    if(keys["a"]) nx--;
-
-    if(keys["d"]) nx++;
-
-    if(!isWall(nx,ny)){
-
-        player.x = nx;
-        player.y = ny;
-    }
-
-    keys["w"] = false;
-    keys["s"] = false;
-    keys["a"] = false;
-    keys["d"] = false;
-}
-
-function drawMap(){
-
-    for(let y=0;y<MAP.length;y++){
-
-        for(let x=0;x<MAP[y].length;x++){
-
-            const tile = MAP[y][x];
-
-            if(tile === "#"){
-
-                ctx.fillStyle = "#2d6a4f";
-
-            }else{
-
-                ctx.fillStyle = "#74c69d";
-            }
-
-            ctx.fillRect(
-                x*TILE,
-                y*TILE,
-                TILE,
-                TILE
-            );
-
-            ctx.strokeStyle =
-                "#00000022";
-
-            ctx.strokeRect(
-                x*TILE,
-                y*TILE,
-                TILE,
-                TILE
-            );
-        }
-    }
-}
-
-function drawPlayer(){
-
-    ctx.fillStyle =
-        player.color;
-
-    ctx.fillRect(
-        player.x*TILE+8,
-        player.y*TILE+8,
-        TILE-16,
-        TILE-16
-    );
-}
-
-function drawNPCs(){
-
-    for(const npc of npcs){
-
-        ctx.fillStyle = "orange";
-
-        ctx.fillRect(
-            npc.x*TILE+8,
-            npc.y*TILE+8,
-            TILE-16,
-            TILE-16
-        );
-
-        ctx.fillStyle = "black";
-
-        ctx.font = "12px Arial";
-
-        ctx.fillText(
-            "NPC",
-            npc.x*TILE+8,
-            npc.y*TILE
+        showMessage(
+            "LEVEL UP! Nivel " +
+            player.level
         );
     }
 }
 
-function drawInteractionHint(){
+let message = "";
+let messageTimer = 0;
 
-    for(const npc of npcs){
+function showMessage(text){
 
-        const dx =
-            Math.abs(player.x - npc.x);
+    message = text;
 
-        const dy =
-            Math.abs(player.y - npc.y);
-
-        if(dx <= 1 && dy <= 1){
-
-            ctx.fillStyle =
-                "white";
-
-            ctx.font =
-                "18px Arial";
-
-            ctx.fillText(
-                "[E] Conversar",
-                npc.x*TILE-20,
-                npc.y*TILE-10
-            );
-        }
-    }
+    messageTimer = 180;
 }
 
-function drawDialog(){
+function drawMessage(){
 
-    if(!dialogOpen) return;
+    if(messageTimer <= 0) return;
 
     ctx.fillStyle =
-        "#111";
+        "rgba(0,0,0,0.7)";
 
     ctx.fillRect(
-        50,
-        canvas.height-180,
-        canvas.width-100,
-        120
-    );
-
-    ctx.strokeStyle =
-        "#ffffff";
-
-    ctx.strokeRect(
-        50,
-        canvas.height-180,
-        canvas.width-100,
-        120
+        20,
+        canvas.height - 80,
+        500,
+        40
     );
 
     ctx.fillStyle =
@@ -252,45 +76,248 @@ function drawDialog(){
         "20px Arial";
 
     ctx.fillText(
-        dialogText,
-        80,
-        canvas.height-120
+        message,
+        40,
+        canvas.height - 50
     );
+
+    messageTimer--;
+}
+
+function attack(){
+
+    for(const slime of slimes){
+
+        if(slime.dead) continue;
+
+        const dx =
+            Math.abs(
+                player.x -
+                slime.x
+            );
+
+        const dy =
+            Math.abs(
+                player.y -
+                slime.y
+            );
+
+        if(dx <= 1 && dy <= 1){
+
+            slime.hp -= player.attack;
+
+            if(slime.hp <= 0){
+
+                slime.dead = true;
+
+                gainXP(10);
+
+                player.gold += 5;
+
+                showMessage(
+                    "Slime derrotado!"
+                );
+
+                quest.kills++;
+
+                checkQuest();
+            }
+
+            break;
+        }
+    }
+}
+
+let quest = {
+
+    active:false,
+
+    kills:0,
+
+    target:3,
+
+    completed:false
+};
+
+function checkQuest(){
+
+    if(
+        !quest.active ||
+        quest.completed
+    ) return;
+
+    if(
+        quest.kills >=
+        quest.target
+    ){
+
+        quest.completed =
+            true;
+
+        gainXP(50);
+
+        player.gold += 50;
+
+        showMessage(
+            "Missao concluida!"
+        );
+    }
+}
+
+if(key === "e"){
+
+    for(const npc of npcs){
+
+        const dx =
+            Math.abs(
+                player.x -
+                npc.x
+            );
+
+        const dy =
+            Math.abs(
+                player.y -
+                npc.y
+            );
+
+        if(dx <= 1 && dy <= 1){
+
+            dialogOpen =
+                true;
+
+            if(!quest.active){
+
+                quest.active =
+                    true;
+
+                dialogText =
+                    "Derrote 3 slimes.";
+
+            }else if(
+                quest.completed
+            ){
+
+                dialogText =
+                    "Obrigado heroi!";
+
+            }else{
+
+                dialogText =
+                    "Progresso: " +
+                    quest.kills +
+                    "/" +
+                    quest.target;
+            }
+        }
+    }
+}
+
+function updateSlimes(){
+
+    if(currentMap !==
+       "forest") return;
+
+    for(const slime of slimes){
+
+        if(slime.dead) continue;
+
+        const dx =
+            Math.abs(
+                player.x -
+                slime.x
+            );
+
+        const dy =
+            Math.abs(
+                player.y -
+                slime.y
+            );
+
+        if(dx <= 1 && dy <= 1){
+
+            player.hp -= 0.1;
+
+            if(player.hp <= 0){
+
+                gameOver();
+            }
+        }
+    }
+}
+
+function gameOver(){
+
+    alert(
+        "Game Over"
+    );
+
+    location.reload();
+}
+
+function drawHUD(){
+
+    ctx.fillStyle =
+        "white";
 
     ctx.font =
-        "16px Arial";
+        "20px Arial";
 
     ctx.fillText(
-        "ESC para fechar",
-        80,
-        canvas.height-90
+        "Level: " +
+        player.level,
+        20,
+        30
     );
+
+    ctx.fillText(
+        "XP: " +
+        player.xp,
+        20,
+        60
+    );
+
+    ctx.fillText(
+        "Gold: " +
+        player.gold,
+        20,
+        90
+    );
+
+    ctx.fillText(
+        "HP: " +
+        Math.floor(player.hp)
+        +
+        "/" +
+        player.maxHp,
+        20,
+        120
+    );
+
+    if(quest.active){
+
+        ctx.fillText(
+            "Quest: " +
+            quest.kills +
+            "/" +
+            quest.target,
+            20,
+            150
+        );
+    }
 }
 
-function gameLoop(){
+if(
+    currentMap ===
+    "forest" &&
+    player.x === 1 &&
+    player.y === 1
+){
 
-    update();
+    currentMap =
+        "city";
 
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+    player.x = 17;
 
-    drawMap();
-
-    drawNPCs();
-
-    drawPlayer();
-
-    drawInteractionHint();
-
-    drawDialog();
-
-    requestAnimationFrame(
-        gameLoop
-    );
+    player.y = 6;
 }
 
-gameLoop();
